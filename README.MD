@@ -17,6 +17,23 @@ I work at Google, but this specific project was created personally
 as I investigated using ARCore in Java apps.  I can't commit to maintaining
 or supporting this project's use.
 
+## Cloning this project
+This project contains a git submodule pointing to the ARCore Android SDK.
+This submodule needs to present in order to build. To achieve this use the
+
+`--recursive parameter` when cloning:
+
+``
+git clone --recursive [URL to Git repo]
+``
+
+If you already have cloned the repository and now want to load it’s submodules you have to use submodule update.
+
+``
+git submodule update --init
+# if there are nested submodules:
+# git submodule update --init --recursive
+``
 
 # LICENSE
 Copyright 2017 Google Inc.

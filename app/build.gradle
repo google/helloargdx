@@ -1,0 +1,119 @@
+/*
+        Copyright 2017 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+        You may obtain a copy of the License at
+
+https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+apply plugin: 'com.android.application'
+
+/*
+    Since ARCore is not any repository, we need to refer to it using the file sytem.  This
+    project is assummed to be a child of a top level project, which is a peer of the ARCore SDK
+    as a Git submodule, so the relative path should work!
+ */
+repositories {
+    flatDir {
+        dirs "../arcore-android-sdk/libraries"
+    }
+}
+
+/*
+    Set libGDX project properties
+ */
+ext {
+    appName = "arcore-gdx"
+    gdxVersion = '1.9.6'
+    roboVMVersion = '2.3.1'
+    box2DLightsVersion = '1.4'
+    ashleyVersion = '1.7.0'
+    aiVersion = '1.8.0'
+}
+
+configurations { natives }
+
+android {
+    compileSdkVersion 26
+    buildToolsVersion "26.0.1"
+    defaultConfig {
+        applicationId "com.github.claywilkinson.helloargdx"
+        minSdkVersion 24
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:26.+'
+    compile 'com.android.support:design:26.+'
+
+    // ARCore dependency
+    compile(name: 'arcore_client', ext: 'aar')
+
+    compile "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
+
+    /* Don't include these since they are not supported by ARCore.
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi"
+
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
+    */
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
+
+    /* This sample does not use physics, but it is included for completeness. */
+    compile "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+
+    natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-arm64-v8a"
+
+    /* exclude unsupported platforms.
+    natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-armeabi"
+    natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86_64"
+    */
+}
+
+// called every time gradle gets executed, takes the native dependencies of
+// the natives configuration, and extracts them to the proper libs/ folders
+// so they get packed with the APK.
+task copyAndroidNatives() {
+    file("src/main/jniLibs/armeabi/").mkdirs();
+    file("src/main/jniLibs/armeabi-v7a/").mkdirs();
+    file("src/main/jniLibs/arm64-v8a/").mkdirs();
+    file("src/main/jniLibs/x86_64/").mkdirs();
+    file("src/main/jniLibs/x86/").mkdirs();
+
+    configurations.natives.files.each { jar ->
+        def outputDir = null
+        if (jar.name.endsWith("natives-arm64-v8a.jar")) outputDir = file("src/main/jniLibs/arm64-v8a")
+        if (jar.name.endsWith("natives-armeabi-v7a.jar")) outputDir = file("src/main/jniLibs/armeabi-v7a")
+        if (jar.name.endsWith("natives-armeabi.jar")) outputDir = file("src/main/jniLibs/armeabi")
+        if (jar.name.endsWith("natives-x86_64.jar")) outputDir = file("src/main/jniLibs/x86_64")
+        if (jar.name.endsWith("natives-x86.jar")) outputDir = file("src/main/jniLibs/x86")
+        if (outputDir != null) {
+            copy {
+                from zipTree(jar)
+                into outputDir
+                include "*.so"
+            }
+        }
+    }
+}
+
