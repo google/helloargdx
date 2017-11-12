@@ -31,8 +31,6 @@ If you already have cloned the repository and now want to load it’s submodules
 
 ``
 git submodule update --init
-# if there are nested submodules:
-# git submodule update --init --recursive
 ``
 
 # LICENSE
