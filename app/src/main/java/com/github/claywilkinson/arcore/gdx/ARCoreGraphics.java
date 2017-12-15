@@ -15,11 +15,12 @@ limitations under the License.
  */
 package com.github.claywilkinson.arcore.gdx;
 
+import android.view.Display;
+
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.badlogic.gdx.backends.android.AndroidGraphics;
 import com.badlogic.gdx.backends.android.surfaceview.ResolutionStrategy;
 import com.google.ar.core.Frame;
-import com.google.ar.core.exceptions.CameraException;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -51,7 +52,8 @@ public class ARCoreGraphics extends AndroidGraphics {
   @Override
   public void onSurfaceChanged(GL10 gl, int width, int height) {
     super.onSurfaceChanged(gl, width, height);
-    application.getSession().setDisplayGeometry(width, height);
+    Display display = application.getWindowManager().getDefaultDisplay();
+    application.getSession().setDisplayGeometry(display.getRotation(), width, height);
   }
 
   @Override
@@ -80,11 +82,7 @@ public class ARCoreGraphics extends AndroidGraphics {
    */
   public Frame getCurrentFrame() {
     if (mCurrentFrame.get() == null) {
-      try {
         mCurrentFrame.compareAndSet(null, application.getSession().update());
-      } catch (CameraException e) {
-        e.printStackTrace();
-      }
     }
     return mCurrentFrame.get();
   }

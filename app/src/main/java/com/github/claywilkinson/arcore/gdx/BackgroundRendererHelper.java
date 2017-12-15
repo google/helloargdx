@@ -96,7 +96,7 @@ public class BackgroundRendererHelper {
       };
 
   public float[] getVertices(Frame frame) {
-    if (frame != null && frame.isDisplayRotationChanged()) {
+    if (frame != null && frame.hasDisplayGeometryChanged()) {
       frame.transformDisplayUvCoords(quadTexCoord, quadTexCoordTransformed);
     }
     float[] ret = new float[QUAD_COORDS.length + QUAD_TEXCOORDS.length];

@@ -39,7 +39,7 @@ class BackgroundRenderer {
   // These are used to make setting the values when drawing "automatic".
   // This shader simply draws the OES texture on the provided coordinates.
   // a_position == ShaderProgram.POSITION_ATTRIBUTE
-  String vertexShaderCode =
+  private static final String vertexShaderCode =
       "attribute vec4 a_position;\n"
           +
           // a_texCoord0 == ShaderProgram.TEXCOORD_ATTRIBUTE + "0"
@@ -50,7 +50,7 @@ class BackgroundRenderer {
           + " v_TexCoord = a_texCoord0;\n"
           + "}";
 
-  String fragmentShaderCode =
+  private static final String fragmentShaderCode =
       "#extension GL_OES_EGL_image_external : require\n"
           + "\n"
           + "precision mediump float;\n"
@@ -71,7 +71,7 @@ class BackgroundRenderer {
 
   public void render(Frame frame) {
 
-    if (mesh.getNumVertices() == 0 || frame.isDisplayRotationChanged()) {
+    if (mesh.getNumVertices() == 0 || frame.hasDisplayGeometryChanged()) {
       mesh.setVertices(((ARCoreGraphics) Gdx.graphics).getBackgroundVertices(frame));
     }
 

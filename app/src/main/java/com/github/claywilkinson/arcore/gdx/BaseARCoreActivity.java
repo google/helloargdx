@@ -15,9 +15,15 @@ limitations under the License.
  */
 package com.github.claywilkinson.arcore.gdx;
 
+import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.design.widget.BaseTransientBottomBar;
+import android.support.design.widget.Snackbar;
+import android.util.Log;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -37,6 +43,10 @@ import com.badlogic.gdx.backends.android.surfaceview.FillResolutionStrategy;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.google.ar.core.Config;
 import com.google.ar.core.Session;
+import com.google.ar.core.exceptions.UnavailableApkTooOldException;
+import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
+import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
+
 import java.lang.reflect.Method;
 
 /**
@@ -45,9 +55,12 @@ import java.lang.reflect.Method;
  * libgdx library for Android game development.
  */
 public class BaseARCoreActivity extends AndroidApplication {
+  private static final String TAG = "BaseARCoreActivity";
+  // Place to show fatal error messages
+  private Snackbar mMessageSnackbar;
+
   // ARCore specific stuff
   private Session mSession;
-  private Config mDefaultConfig;
 
   public Session getSession() {
     return mSession;
@@ -60,20 +73,42 @@ public class BaseARCoreActivity extends AndroidApplication {
   }
 
   private void initializeARCore() {
-    mSession = new Session(/*context=*/ this);
-    // Create default config, check is supported, create session from that config.
-    mDefaultConfig = Config.createDefaultConfig();
-    if (!mSession.isSupported(mDefaultConfig)) {
-      // TODO(avirodov): toast?
-      finish();
+    Exception exception = null;
+    String message = null;
+    try {
+      mSession = new Session(/* context= */ this);
+    } catch (UnavailableArcoreNotInstalledException e) {
+      message = "Please install ARCore";
+      exception = e;
+    } catch (UnavailableApkTooOldException e) {
+      message = "Please update ARCore";
+      exception = e;
+    } catch (UnavailableSdkTooOldException e) {
+      message = "Please update this app";
+      exception = e;
+    } catch (Exception e) {
+      message = "This device does not support AR";
+      exception = e;
+    }
+
+    if (message != null) {
+      showSnackbarMessage(message, true);
+      Log.e(TAG, "Exception creating session", exception);
       return;
     }
+
+    // Create default config and check if supported.
+    Config config = new Config(mSession);
+    if (!mSession.isSupported(config)) {
+      showSnackbarMessage("This device does not support AR", true);
+    }
+    mSession.configure(config);
   }
 
   @Override
   protected void onResume() {
     if (CameraPermissionHelper.hasCameraPermission(this)) {
-      mSession.resume(mDefaultConfig);
+      mSession.resume();
     } else {
       CameraPermissionHelper.requestCameraPermission(this);
     }
@@ -87,7 +122,8 @@ public class BaseARCoreActivity extends AndroidApplication {
   }
 
   @Override
-  public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+  public void onRequestPermissionsResult(int requestCode,
+                                         @NonNull String[] permissions, @NonNull int[] results) {
     if (!CameraPermissionHelper.hasCameraPermission(this)) {
       Toast.makeText(this, "Augmented Reality requires camera permission", Toast.LENGTH_LONG)
           .show();
@@ -189,5 +225,30 @@ public class BaseARCoreActivity extends AndroidApplication {
         log("AndroidApplication", "Failed to create AndroidVisibilityListener", e);
       }
     }
+  }
+  private void showSnackbarMessage(String message, boolean finishOnDismiss) {
+    mMessageSnackbar = Snackbar.make(
+            getWindow().getDecorView(),
+            message, Snackbar.LENGTH_INDEFINITE);
+    mMessageSnackbar.getView().setBackgroundColor(0xbf323232);
+    if (finishOnDismiss) {
+      mMessageSnackbar.setAction(
+              "Dismiss",
+              new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                  mMessageSnackbar.dismiss();
+                }
+              });
+      mMessageSnackbar.addCallback(
+              new BaseTransientBottomBar.BaseCallback<Snackbar>() {
+                @Override
+                public void onDismissed(Snackbar transientBottomBar, int event) {
+                  super.onDismissed(transientBottomBar, event);
+                  finish();
+                }
+              });
+    }
+    mMessageSnackbar.show();
   }
 }

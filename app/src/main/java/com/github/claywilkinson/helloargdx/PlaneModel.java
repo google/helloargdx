@@ -52,7 +52,7 @@ class PlaneModel {
   private static final float FADE_RADIUS_M = 0.25f;
 
   public static Model createPlane(Plane plane, int index) {
-    FloatBuffer boundary = plane.getPlanePolygon();
+    FloatBuffer boundary = plane.getPolygon();
     float extentX = plane.getExtentX();
     float extentZ = plane.getExtentZ();
 
