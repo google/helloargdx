@@ -23,6 +23,7 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.utils.ShaderProvider;
 import com.badlogic.gdx.math.Matrix4;
+import com.google.ar.core.Camera;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
 
@@ -52,8 +53,6 @@ public abstract class ARCoreScene implements ApplicationListener {
 
   /**
    * Camera controlled by ARCore. This is used to determine where the user is looking.
-   *
-   * @return
    */
   protected PerspectiveCamera getCamera() {
     return camera;
@@ -69,8 +68,6 @@ public abstract class ARCoreScene implements ApplicationListener {
 
   /**
    * ARCore session object.
-   *
-   * @return
    */
   protected Session getSession() {
     return ((BaseARCoreActivity) Gdx.app).getSession();
@@ -78,8 +75,6 @@ public abstract class ARCoreScene implements ApplicationListener {
 
   /**
    * Gets the Android View being used for rendering.
-   *
-   * @return
    */
   protected View getView() {
     return ((ARCoreGraphics) Gdx.graphics).getView();
@@ -122,9 +117,10 @@ public abstract class ARCoreScene implements ApplicationListener {
     // Move the camera, and then render.
     float vm[] = new float[16];
 
-    getSession().getProjectionMatrix(vm, 0, camera.near, camera.far);
+    Camera arCamera = frame.getCamera();
+    arCamera.getProjectionMatrix(vm, 0, camera.near, camera.far);
     camera.projection.set(vm);
-    frame.getViewMatrix(vm, 0);
+    arCamera.getViewMatrix(vm, 0);
     camera.view.set(vm);
     camera.combined.set(camera.projection);
     Matrix4.mul(camera.combined.val, camera.view.val);

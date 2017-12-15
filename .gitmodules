@@ -1,4 +1,0 @@
-[submodule "arcore-android-sdk"]
-	path = arcore-android-sdk
-	url = https://github.com/google-ar/arcore-android-sdk.git
-	branch = master

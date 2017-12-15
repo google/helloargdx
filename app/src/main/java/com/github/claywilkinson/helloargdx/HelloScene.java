@@ -31,13 +31,12 @@ import com.google.ar.core.Anchor;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
-import com.google.ar.core.PlaneHitResult;
 import com.google.ar.core.Pose;
+import com.google.ar.core.Trackable;
 import com.google.ar.core.exceptions.NotTrackingException;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.github.claywilkinson.arcore.gdx.PlaneAttachment;
 import com.github.claywilkinson.arcore.gdx.SimpleShaderProvider;
-import java.util.Collections;
 import java.util.HashMap;
 
 /**
@@ -56,7 +55,7 @@ public class HelloScene extends ARCoreScene {
   private AndyModel andyModel;
 
   // Keep the objects in the scene mapped by the anchor id.
-  private HashMap<String, PlaneAttachment<ModelInstance>> instances = new HashMap<>();
+  private HashMap<Anchor, PlaneAttachment<ModelInstance>> instances = new HashMap<>();
 
   @Override
   public void create() {
@@ -107,7 +106,7 @@ public class HelloScene extends ARCoreScene {
     handleInput(frame);
 
     for(Anchor anchor : frame.getUpdatedAnchors()) {
-      PlaneAttachment<ModelInstance> item = instances.get(anchor.getId());
+      PlaneAttachment<ModelInstance> item = instances.get(anchor);
       if (item != null) {
         ModelInstance m = item.getData();
         Pose p = item.getPose();
@@ -136,16 +135,17 @@ public class HelloScene extends ARCoreScene {
       int x = Gdx.input.getX();
       int y = Gdx.input.getY();
 
-      if (frame.getTrackingState() == Frame.TrackingState.TRACKING) {
+      if (frame.getCamera().getTrackingState() == Trackable.TrackingState.TRACKING) {
         for (HitResult hit : frame.hitTest(x, y)) {
           // Check if any plane was hit, and if it was hit inside the plane polygon.
-          if (hit instanceof PlaneHitResult && ((PlaneHitResult) hit).isHitInPolygon()) {
+          if(hit.getTrackable() instanceof Plane &&
+                  ((Plane) hit.getTrackable()).isPoseInPolygon(hit.getHitPose())) {
             // Cap the number of objects created. This avoids overloading both the
             // rendering system and ARCore.
             if (instances.size() >= 16) {
-              String key = instances.keySet().iterator().next();
-              PlaneAttachment<ModelInstance> item = instances.remove(key);
-              getSession().removeAnchors(Collections.singletonList(item.getAnchor()));
+              Anchor key = instances.keySet().iterator().next();
+              instances.remove(key);
+              key.detach();
             }
             // Adding an Anchor tells ARCore that it should track this position in
             // space. This anchor will be used in PlaneAttachment to place the 3d model
@@ -154,27 +154,25 @@ public class HelloScene extends ARCoreScene {
               ModelInstance item = andyModel.createInstance();
               if (item != null) {
                 PlaneAttachment<ModelInstance> planeAttachment =
-                    new PlaneAttachment<>(
-                        ((PlaneHitResult) hit).getPlane(),
-                        getSession().addAnchor(hit.getHitPose()),
+                    new PlaneAttachment<>((Plane) hit.getTrackable(),
+                        getSession().createAnchor(hit.getHitPose()),
                         item);
 
-                instances.put(planeAttachment.getAnchor().getId(), planeAttachment);
+                instances.put(planeAttachment.getAnchor(), planeAttachment);
 
                 Pose p = planeAttachment.getPose();
                 // position and rotate
-                Vector3 dir =
-                    new Vector3(frame.getPose().tx(), frame.getPose().ty(), frame.getPose().tz());
-                Vector3 pos =
-                    new Vector3(p.tx(),p.ty(),p.tz());
+                Quaternion dir =
+                    new Quaternion(p.qx(), p.qy(), p.qz(), p.qw());
+                Vector3 pos = new Vector3(p.tx(),p.ty(),p.tz());
                 item.transform.translate(pos);
+                item.transform.set(dir);
+                // Hits are sorted by depth. Consider only closest hit on a plane.
+                break;
               }
             } catch (NotTrackingException e) {
               Log.w("HelloScene", "not tracking: " + e);
             }
-
-            // Hits are sorted by depth. Consider only closest hit on a plane.
-            break;
           }
         }
       }
@@ -185,11 +183,11 @@ public class HelloScene extends ARCoreScene {
   private void drawPlanes(ModelBatch modelBatch) {
     Array<ModelInstance> planeInstances = new Array<>();
     int index = 0;
-    for (Plane plane : getSession().getAllPlanes()) {
+    for (Plane plane : getSession().getAllTrackables(Plane.class)) {
 
       // check for planes that are no longer valid
       if (plane.getSubsumedBy() != null
-          || plane.getTrackingState() == Plane.TrackingState.STOPPED_TRACKING) {
+          || plane.getTrackingState() == Plane.TrackingState.STOPPED) {
         continue;
       }
       // New plane
@@ -209,13 +207,13 @@ public class HelloScene extends ARCoreScene {
    */
   private boolean handleLoadingMessage(Frame frame) {
     // If not tracking, don't draw 3d objects.
-    if (frame.getTrackingState() == Frame.TrackingState.NOT_TRACKING) {
+    if (frame.getCamera().getTrackingState() != Trackable.TrackingState.TRACKING) {
       showLoadingMessage();
       return false;
     }
     // Check if we detected at least one plane. If so, hide the loading message.
     if (mLoadingMessageSnackbar != null) {
-      for (Plane plane : getSession().getAllPlanes()) {
+      for (Plane plane : getSession().getAllTrackables(Plane.class)) {
         if (plane.getType() == Plane.Type.HORIZONTAL_UPWARD_FACING
             && plane.getTrackingState() == Plane.TrackingState.TRACKING) {
           hideLoadingMessage();
