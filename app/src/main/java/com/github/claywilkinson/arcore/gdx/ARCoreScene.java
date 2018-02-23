@@ -23,7 +23,6 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.utils.ShaderProvider;
 import com.badlogic.gdx.math.Matrix4;
-import com.google.ar.core.Camera;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
 
@@ -70,7 +69,7 @@ public abstract class ARCoreScene implements ApplicationListener {
    * ARCore session object.
    */
   protected Session getSession() {
-    return ((BaseARCoreActivity) Gdx.app).getSession();
+    return ((BaseARCoreActivity) Gdx.app).getSessionSupport().getSession();
   }
 
   /**
@@ -106,6 +105,11 @@ public abstract class ARCoreScene implements ApplicationListener {
     ARCoreGraphics arCoreGraphics = (ARCoreGraphics) Gdx.graphics;
     Frame frame = arCoreGraphics.getCurrentFrame();
 
+    // Frame can be null when initializing or if ARCore is not supported on this device.
+    if (frame == null) {
+      return;
+    }
+
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
     backgroundRenderer.render(frame);
@@ -117,10 +121,9 @@ public abstract class ARCoreScene implements ApplicationListener {
     // Move the camera, and then render.
     float vm[] = new float[16];
 
-    Camera arCamera = frame.getCamera();
-    arCamera.getProjectionMatrix(vm, 0, camera.near, camera.far);
+    frame.getCamera().getProjectionMatrix(vm, 0, camera.near, camera.far);
     camera.projection.set(vm);
-    arCamera.getViewMatrix(vm, 0);
+    frame.getCamera().getViewMatrix(vm, 0);
     camera.view.set(vm);
     camera.combined.set(camera.projection);
     Matrix4.mul(camera.combined.val, camera.view.val);

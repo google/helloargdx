@@ -18,6 +18,9 @@ limitations under the License.
 
     <!-- For ARCore -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- This tag indicates that this application requires ARCore.  This results in the application
+          only being visible in the Google Play Store on devices that support ARCore. -->
+    <uses-feature android:name="android.hardware.camera.ar" android:required="true"/>
 
     <application
         android:allowBackup="false"
@@ -26,6 +29,11 @@ limitations under the License.
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
+        <!-- This tag indicates that this application requires ARCore.  This results in the Google Play
+     Store downloading and installing ARCore along with the application. -->
+        <meta-data android:name="com.google.ar.core" android:value="required" />
+
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name">

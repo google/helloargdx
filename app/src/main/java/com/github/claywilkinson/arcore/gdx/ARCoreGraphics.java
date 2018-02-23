@@ -15,12 +15,14 @@ limitations under the License.
  */
 package com.github.claywilkinson.arcore.gdx;
 
-import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.badlogic.gdx.backends.android.AndroidGraphics;
 import com.badlogic.gdx.backends.android.surfaceview.ResolutionStrategy;
 import com.google.ar.core.Frame;
+
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -52,15 +54,19 @@ public class ARCoreGraphics extends AndroidGraphics {
   @Override
   public void onSurfaceChanged(GL10 gl, int width, int height) {
     super.onSurfaceChanged(gl, width, height);
-    Display display = application.getWindowManager().getDefaultDisplay();
-    application.getSession().setDisplayGeometry(display.getRotation(), width, height);
+    WindowManager mgr = application.getSystemService(WindowManager.class);
+    int rotation = Surface.ROTATION_0;
+    if (mgr != null) {
+      rotation = mgr.getDefaultDisplay().getRotation();
+    }
+    application.getSessionSupport().setDisplayGeometry(rotation, width, height);
   }
 
   @Override
   public void onSurfaceCreated(GL10 gl, EGLConfig config) {
     super.onSurfaceCreated(gl, config);
     mBackgroundRenderer.createOnGlThread(application);
-    application.getSession().setCameraTextureName(mBackgroundRenderer.getTextureId());
+    application.getSessionSupport().setCameraTextureName(mBackgroundRenderer.getTextureId());
   }
 
   @Override
@@ -82,7 +88,7 @@ public class ARCoreGraphics extends AndroidGraphics {
    */
   public Frame getCurrentFrame() {
     if (mCurrentFrame.get() == null) {
-        mCurrentFrame.compareAndSet(null, application.getSession().update());
+        mCurrentFrame.compareAndSet(null, application.getSessionSupport().update());
     }
     return mCurrentFrame.get();
   }
