@@ -18,7 +18,7 @@ package com.github.claywilkinson.arcore.gdx;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.Plane;
 import com.google.ar.core.Pose;
-import com.google.ar.core.Trackable;
+import com.google.ar.core.TrackingState;
 
 /**
  * Attaches an object of type T to a plane using an anchor. This associates the object both with a
@@ -41,8 +41,8 @@ public class PlaneAttachment<T> {
   }
 
   public boolean isTracking() {
-    return /*true if*/ plane.getTrackingState() == Plane.TrackingState.TRACKING
-        && anchor.getTrackingState() == Trackable.TrackingState.TRACKING;
+    return /*true if*/ plane.getTrackingState() == TrackingState.TRACKING
+        && anchor.getTrackingState() == TrackingState.TRACKING;
   }
 
   public Pose getPose() {

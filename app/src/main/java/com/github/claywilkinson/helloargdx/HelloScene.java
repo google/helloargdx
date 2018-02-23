@@ -32,7 +32,7 @@ import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
 import com.google.ar.core.Pose;
-import com.google.ar.core.Trackable;
+import com.google.ar.core.TrackingState;
 import com.google.ar.core.exceptions.NotTrackingException;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.github.claywilkinson.arcore.gdx.PlaneAttachment;
@@ -135,10 +135,9 @@ public class HelloScene extends ARCoreScene {
       int x = Gdx.input.getX();
       int y = Gdx.input.getY();
 
-      if (frame.getCamera().getTrackingState() == Trackable.TrackingState.TRACKING) {
         for (HitResult hit : frame.hitTest(x, y)) {
           // Check if any plane was hit, and if it was hit inside the plane polygon.
-          if(hit.getTrackable() instanceof Plane &&
+          if (hit.getTrackable() instanceof Plane  &&
                   ((Plane) hit.getTrackable()).isPoseInPolygon(hit.getHitPose())) {
             // Cap the number of objects created. This avoids overloading both the
             // rendering system and ARCore.
@@ -154,7 +153,8 @@ public class HelloScene extends ARCoreScene {
               ModelInstance item = andyModel.createInstance();
               if (item != null) {
                 PlaneAttachment<ModelInstance> planeAttachment =
-                    new PlaneAttachment<>((Plane) hit.getTrackable(),
+                    new PlaneAttachment<>(
+                            (Plane)hit.getTrackable(),
                         getSession().createAnchor(hit.getHitPose()),
                         item);
 
@@ -162,20 +162,19 @@ public class HelloScene extends ARCoreScene {
 
                 Pose p = planeAttachment.getPose();
                 // position and rotate
-                Quaternion dir =
-                    new Quaternion(p.qx(), p.qy(), p.qz(), p.qw());
+                Quaternion dir = new Quaternion(p.qx(), p.qy(), p.qz(), p.qw());
                 Vector3 pos = new Vector3(p.tx(),p.ty(),p.tz());
                 item.transform.translate(pos);
                 item.transform.set(dir);
-                // Hits are sorted by depth. Consider only closest hit on a plane.
-                break;
               }
             } catch (NotTrackingException e) {
               Log.w("HelloScene", "not tracking: " + e);
             }
+
+            // Hits are sorted by depth. Consider only closest hit on a plane.
+            break;
           }
         }
-      }
     }
   }
 
@@ -187,7 +186,7 @@ public class HelloScene extends ARCoreScene {
 
       // check for planes that are no longer valid
       if (plane.getSubsumedBy() != null
-          || plane.getTrackingState() == Plane.TrackingState.STOPPED) {
+          || plane.getTrackingState() == TrackingState.STOPPED) {
         continue;
       }
       // New plane
@@ -207,7 +206,7 @@ public class HelloScene extends ARCoreScene {
    */
   private boolean handleLoadingMessage(Frame frame) {
     // If not tracking, don't draw 3d objects.
-    if (frame.getCamera().getTrackingState() != Trackable.TrackingState.TRACKING) {
+    if (frame.getCamera().getTrackingState() != TrackingState.TRACKING) {
       showLoadingMessage();
       return false;
     }
@@ -215,7 +214,7 @@ public class HelloScene extends ARCoreScene {
     if (mLoadingMessageSnackbar != null) {
       for (Plane plane : getSession().getAllTrackables(Plane.class)) {
         if (plane.getType() == Plane.Type.HORIZONTAL_UPWARD_FACING
-            && plane.getTrackingState() == Plane.TrackingState.TRACKING) {
+            && plane.getTrackingState() == TrackingState.TRACKING) {
           hideLoadingMessage();
         }
       }
