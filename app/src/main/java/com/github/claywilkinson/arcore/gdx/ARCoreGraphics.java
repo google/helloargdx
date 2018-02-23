@@ -15,11 +15,14 @@ limitations under the License.
  */
 package com.github.claywilkinson.arcore.gdx;
 
+import android.view.Surface;
+import android.view.WindowManager;
+
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 import com.badlogic.gdx.backends.android.AndroidGraphics;
 import com.badlogic.gdx.backends.android.surfaceview.ResolutionStrategy;
 import com.google.ar.core.Frame;
-import com.google.ar.core.exceptions.CameraException;
+
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -51,14 +54,19 @@ public class ARCoreGraphics extends AndroidGraphics {
   @Override
   public void onSurfaceChanged(GL10 gl, int width, int height) {
     super.onSurfaceChanged(gl, width, height);
-    application.getSession().setDisplayGeometry(width, height);
+    WindowManager mgr = application.getSystemService(WindowManager.class);
+    int rotation = Surface.ROTATION_0;
+    if (mgr != null) {
+      rotation = mgr.getDefaultDisplay().getRotation();
+    }
+    application.getSessionSupport().setDisplayGeometry(rotation, width, height);
   }
 
   @Override
   public void onSurfaceCreated(GL10 gl, EGLConfig config) {
     super.onSurfaceCreated(gl, config);
     mBackgroundRenderer.createOnGlThread(application);
-    application.getSession().setCameraTextureName(mBackgroundRenderer.getTextureId());
+    application.getSessionSupport().setCameraTextureName(mBackgroundRenderer.getTextureId());
   }
 
   @Override
@@ -80,11 +88,7 @@ public class ARCoreGraphics extends AndroidGraphics {
    */
   public Frame getCurrentFrame() {
     if (mCurrentFrame.get() == null) {
-      try {
-        mCurrentFrame.compareAndSet(null, application.getSession().update());
-      } catch (CameraException e) {
-        e.printStackTrace();
-      }
+        mCurrentFrame.compareAndSet(null, application.getSessionSupport().update());
     }
     return mCurrentFrame.get();
   }

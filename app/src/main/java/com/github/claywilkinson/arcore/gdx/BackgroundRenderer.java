@@ -71,7 +71,7 @@ class BackgroundRenderer {
 
   public void render(Frame frame) {
 
-    if (mesh.getNumVertices() == 0 || frame.isDisplayRotationChanged()) {
+    if (mesh.getNumVertices() == 0 || frame.hasDisplayGeometryChanged()) {
       mesh.setVertices(((ARCoreGraphics) Gdx.graphics).getBackgroundVertices(frame));
     }
 
