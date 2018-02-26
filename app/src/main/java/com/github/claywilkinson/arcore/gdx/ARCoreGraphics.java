@@ -54,7 +54,10 @@ public class ARCoreGraphics extends AndroidGraphics {
   @Override
   public void onSurfaceChanged(GL10 gl, int width, int height) {
     super.onSurfaceChanged(gl, width, height);
-    WindowManager mgr = application.getSystemService(WindowManager.class);
+    WindowManager mgr = null;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+      mgr = application.getSystemService(WindowManager.class);
+    }
     int rotation = Surface.ROTATION_0;
     if (mgr != null) {
       rotation = mgr.getDefaultDisplay().getRotation();

@@ -34,6 +34,7 @@ import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
+import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 
 
@@ -95,6 +96,8 @@ public class ARSessionSupport implements LifecycleObserver {
     ArCoreApk.Availability availability = ArCoreApk.getInstance().checkAvailability(activity);
     Log.d(TAG, "Availability is " + availability);
 
+    try {
+
     if (ArCoreApk.getInstance().requestInstall(activity, mUserRequestedInstall) ==
             ArCoreApk.InstallStatus.INSTALL_REQUESTED) {
       // Ensures next invocation of requestInstall() will either return
@@ -103,7 +106,7 @@ public class ARSessionSupport implements LifecycleObserver {
       return;
     }
 
-    try {
+
 
       session = new Session(activity);
     } catch (UnavailableArcoreNotInstalledException e) {
@@ -117,6 +120,10 @@ public class ARSessionSupport implements LifecycleObserver {
     } catch (UnavailableSdkTooOldException e) {
       message = "Please update this app";
       setStatus(ARStatus.SDKTooOld);
+      exception = e;
+    } catch (UnavailableDeviceNotCompatibleException e) {
+      setStatus(ARStatus.DeviceNotSupported);
+      message = "This device does not support AR";
       exception = e;
     } catch (Exception e) {
       setStatus(ARStatus.UnknownException);
@@ -274,6 +281,7 @@ public class ARSessionSupport implements LifecycleObserver {
     UnknownException,
     NeedCameraPermission,
     Ready,
+    DeviceNotSupported,
     Uninitialized
   }
 }
