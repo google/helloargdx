@@ -32,6 +32,7 @@ import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
@@ -152,7 +153,11 @@ public class ARSessionSupport implements LifecycleObserver {
       setDisplayGeometry(rotation, width, height);
     }
 
-    session.resume();
+    try {
+      session.resume();
+    } catch (CameraNotAvailableException e) {
+      Log.e(TAG, e.getMessage());
+    }
     setStatus(ARStatus.Ready);
   }
 
@@ -166,7 +171,11 @@ public class ARSessionSupport implements LifecycleObserver {
       if (session == null) {
         initializeARCore();
       } else {
-        session.resume();
+        try {
+          session.resume();
+        } catch (CameraNotAvailableException e) {
+          Log.e(TAG, e.getMessage());
+        }
       }
     } else {
       requestCameraPermission();
@@ -228,7 +237,11 @@ public class ARSessionSupport implements LifecycleObserver {
   @Nullable
   public Frame update() {
     if (session != null) {
-      return session.update();
+      try {
+        return session.update();
+      } catch (CameraNotAvailableException e) {
+        Log.e(TAG, e.getMessage());
+      }
     }
     return null;
   }
