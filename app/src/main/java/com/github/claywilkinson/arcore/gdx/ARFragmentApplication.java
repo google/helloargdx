@@ -19,40 +19,29 @@ import android.app.Activity;
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.LifecycleRegistry;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.Snackbar;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
+import android.view.ViewGroup;
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.LifecycleListener;
-import com.badlogic.gdx.backends.android.AndroidApplication;
-import com.badlogic.gdx.backends.android.AndroidApplicationBase;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.badlogic.gdx.backends.android.AndroidApplicationLogger;
-import com.badlogic.gdx.backends.android.AndroidAudio;
-import com.badlogic.gdx.backends.android.AndroidClipboard;
-import com.badlogic.gdx.backends.android.AndroidFiles;
+import com.badlogic.gdx.backends.android.AndroidFragmentApplication;
 import com.badlogic.gdx.backends.android.AndroidInputFactory;
-import com.badlogic.gdx.backends.android.AndroidNet;
 import com.badlogic.gdx.backends.android.surfaceview.FillResolutionStrategy;
-import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.github.claywilkinson.arcore.gdx.util.ARSessionSupport;
 
-import java.lang.reflect.Method;
-
 /**
- * Android Activity subclass that handles initializing ARCore and the underlying graphics engine
+ * Android Fragment subclass that handles initializing ARCore and the underlying graphics engine
  * used for drawing 3d and 2d models in the context of the ARCore Frame. This class is based on the
  * libgdx library for Android game development.
  */
-public class BaseARCoreActivity extends AndroidApplication implements LifecycleOwner,
+public class ARFragmentApplication extends AndroidFragmentApplication implements LifecycleOwner,
         ARSessionSupport.StatusChangeListener {
 
   // ARCore specific stuff
@@ -62,6 +51,28 @@ public class BaseARCoreActivity extends AndroidApplication implements LifecycleO
   // Implement the LifecycleOwner interface since AndroidApplication does not extend AppCompatActivity.
   // All this means is forward the events to the lifecycleRegistry object.
   private LifecycleRegistry lifecycleRegistry;
+  private ARCoreScene scene;
+  private AndroidApplicationConfiguration configuration;
+
+  public ARFragmentApplication() {
+
+  }
+
+  public void setScene(ARCoreScene scene) {
+    this.scene = scene;
+  }
+
+  public ARCoreScene getScene() {
+    return scene;
+  }
+
+  public AndroidApplicationConfiguration getConfiguration() {
+    return configuration;
+  }
+
+  public void setConfiguration(AndroidApplicationConfiguration configuration) {
+    this.configuration = configuration;
+  }
 
   /**
    * Gets the ARCore session.  It can be null if the
@@ -73,32 +84,42 @@ public class BaseARCoreActivity extends AndroidApplication implements LifecycleO
   }
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
+  public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     lifecycleRegistry = new LifecycleRegistry(this);
     lifecycleRegistry.markState(Lifecycle.State.CREATED);
-    sessionSupport = new ARSessionSupport(this, lifecycleRegistry, this);
+    sessionSupport = new ARSessionSupport(requireActivity(), lifecycleRegistry, this);
+  }
+
+  @Nullable
+  @Override
+  public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    AndroidApplicationConfiguration config = getConfiguration();
+    if (config == null) {
+      config= new AndroidApplicationConfiguration();
+    }
+    return  initializeForView(getScene(), config);
   }
 
   @Override
-  protected void onStart() {
+  public void onStart() {
     super.onStart();
     lifecycleRegistry.markState(Lifecycle.State.STARTED);
   }
 
   @Override
-  protected void onDestroy() {
+  public void onDestroy() {
     super.onDestroy();
     lifecycleRegistry.markState(Lifecycle.State.DESTROYED);
   }
 
-  protected void onPause() {
+  public void onPause() {
     super.onPause();
     lifecycleRegistry.markState(Lifecycle.State.STARTED);
   }
 
   @Override
-  protected void onResume() {
+  public void onResume() {
     super.onResume();
     lifecycleRegistry.markState(Lifecycle.State.RESUMED);
   }
@@ -106,25 +127,20 @@ public class BaseARCoreActivity extends AndroidApplication implements LifecycleO
   private void showSnackbarMessage(String message, boolean finishOnDismiss) {
     messageSnackbar =
             Snackbar.make(
-                    getWindow().getDecorView(),
+                    requireActivity().getWindow().getDecorView(),
                     message + "\n",
                     Snackbar.LENGTH_INDEFINITE);
     messageSnackbar.getView().setBackgroundColor(0xbf323232);
     if (finishOnDismiss) {
       messageSnackbar.setAction(
               "Dismiss",
-              new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                  messageSnackbar.dismiss();
-                }
-              });
+              v -> messageSnackbar.dismiss());
       messageSnackbar.addCallback(
               new BaseTransientBottomBar.BaseCallback<Snackbar>() {
                 @Override
                 public void onDismissed(Snackbar transientBottomBar, int event) {
                   super.onDismissed(transientBottomBar, event);
-                  finish();
+                  requireActivity().finish();
                 }
               });
     }
@@ -141,90 +157,28 @@ public class BaseARCoreActivity extends AndroidApplication implements LifecycleO
    * @param config   the {@link AndroidApplicationConfiguration}, defining various settings of the
    *                 application (use accelerometer, etc.).
    */
-  public void initialize(ApplicationListener listener, AndroidApplicationConfiguration config) {
-    init(listener, config, false);
+  @Override
+  public View initializeForView(ApplicationListener listener, AndroidApplicationConfiguration config) {
+    super.initializeForView(listener, config);
+    initArGraphics(config);
+    return graphics.getView();
   }
 
-  private void init(
-          ApplicationListener listener, AndroidApplicationConfiguration config, boolean isForView) {
-    if (this.getVersion() < MINIMUM_SDK) {
-      throw new GdxRuntimeException(
-              "LibGDX requires Android API Level " + MINIMUM_SDK + " or later.");
-    }
-    setApplicationLogger(new AndroidApplicationLogger());
-    graphics =
+  private void initArGraphics(AndroidApplicationConfiguration config) {
+     super.graphics =
             new ARCoreGraphics(
                     this,
                     config,
                     config.resolutionStrategy == null
                             ? new FillResolutionStrategy()
                             : config.resolutionStrategy);
-    input = AndroidInputFactory.newAndroidInput(this, this, graphics.getView(), config);
-    audio = new AndroidAudio(this, config);
-    this.getFilesDir(); // workaround for Android bug #10515463
-    files = new AndroidFiles(this.getAssets(), this.getFilesDir().getAbsolutePath());
-    net = new AndroidNet(this);
-    this.listener = listener;
-    this.handler = new Handler();
-    this.useImmersiveMode = config.useImmersiveMode;
-    this.hideStatusBar = config.hideStatusBar;
-    this.clipboard = new AndroidClipboard(this);
-
-    // Add a specialized audio lifecycle listener
-    addLifecycleListener(
-            new LifecycleListener() {
-
-              @Override
-              public void resume() {
-                // No need to resume audio here
-              }
-
-              @Override
-              public void pause() {
-                //     audio.pause();
-              }
-
-              @Override
-              public void dispose() {
-                audio.dispose();
-              }
-            });
-
+    input = AndroidInputFactory.newAndroidInput(this, requireContext(), graphics.getView(), config);
     Gdx.app = this;
     Gdx.input = this.getInput();
     Gdx.audio = this.getAudio();
     Gdx.files = this.getFiles();
     Gdx.graphics = this.getGraphics();
     Gdx.net = this.getNet();
-
-    if (!isForView) {
-      try {
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-      } catch (Exception ex) {
-        log("AndroidApplication", "Content already displayed, cannot request FEATURE_NO_TITLE", ex);
-      }
-      getWindow()
-              .setFlags(
-                      WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                      WindowManager.LayoutParams.FLAG_FULLSCREEN);
-      getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-      setContentView(graphics.getView(), createLayoutParams());
-    }
-
-    createWakeLock(config.useWakelock);
-    hideStatusBar(this.hideStatusBar);
-    useImmersiveMode(this.useImmersiveMode);
-    if (this.useImmersiveMode && getVersion() >= Build.VERSION_CODES.KITKAT) {
-      try {
-        Class<?> vlistener =
-                Class.forName("com.badlogic.gdx.backends.android.AndroidVisibilityListener");
-        Object o = vlistener.newInstance();
-        Method method = vlistener.getDeclaredMethod("createListener", AndroidApplicationBase.class);
-        method.invoke(o, this);
-      } catch (Exception e) {
-        log("AndroidApplication", "Failed to create AndroidVisibilityListener", e);
-      }
-    }
   }
 
   @NonNull

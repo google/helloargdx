@@ -69,7 +69,7 @@ public abstract class ARCoreScene implements ApplicationListener {
    * ARCore session object.
    */
   protected Session getSession() {
-    return ((BaseARCoreActivity) Gdx.app).getSessionSupport().getSession();
+    return ((ARFragmentApplication) Gdx.app).getSessionSupport().getSession();
   }
 
   /**
@@ -100,7 +100,7 @@ public abstract class ARCoreScene implements ApplicationListener {
   @Override
   public void render() {
 
-    // Boiler plater rendering code goes here, the intent is that this sets up the scene object,
+    // Boiler plate rendering code goes here, the intent is that this sets up the scene object,
     // Application specific rendering should be done from render(Frame).
     ARCoreGraphics arCoreGraphics = (ARCoreGraphics) Gdx.graphics;
     Frame frame = arCoreGraphics.getCurrentFrame();

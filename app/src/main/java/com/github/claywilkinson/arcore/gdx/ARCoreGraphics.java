@@ -35,13 +35,12 @@ import javax.microedition.khronos.opengles.GL10;
  */
 public class ARCoreGraphics extends AndroidGraphics {
 
-  // TODO: refactor session to this class
-  private BaseARCoreActivity application;
+  private ARFragmentApplication application;
   private BackgroundRendererHelper mBackgroundRenderer;
   private AtomicReference<Frame> mCurrentFrame;
 
   public ARCoreGraphics(
-      BaseARCoreActivity arCoreApplication,
+      ARFragmentApplication arCoreApplication,
       AndroidApplicationConfiguration config,
       ResolutionStrategy resolutionStrategy) {
     super(arCoreApplication, config, resolutionStrategy);
@@ -56,7 +55,7 @@ public class ARCoreGraphics extends AndroidGraphics {
     super.onSurfaceChanged(gl, width, height);
     WindowManager mgr = null;
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-      mgr = application.getSystemService(WindowManager.class);
+      mgr = application.requireActivity().getSystemService(WindowManager.class);
     }
     int rotation = Surface.ROTATION_0;
     if (mgr != null) {
@@ -68,7 +67,7 @@ public class ARCoreGraphics extends AndroidGraphics {
   @Override
   public void onSurfaceCreated(GL10 gl, EGLConfig config) {
     super.onSurfaceCreated(gl, config);
-    mBackgroundRenderer.createOnGlThread(application);
+    mBackgroundRenderer.createOnGlThread(application.requireContext());
     application.getSessionSupport().setCameraTextureName(mBackgroundRenderer.getTextureId());
   }
 

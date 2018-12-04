@@ -22,8 +22,8 @@ package com.github.claywilkinson.arcore.gdx;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.pm.PackageManager;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 
 /**

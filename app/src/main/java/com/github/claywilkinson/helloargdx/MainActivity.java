@@ -16,21 +16,90 @@ limitations under the License.
 package com.github.claywilkinson.helloargdx;
 
 import android.os.Bundle;
-import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.github.claywilkinson.arcore.gdx.BaseARCoreActivity;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.AlertDialog;
+import android.util.Log;
+
+import com.badlogic.gdx.backends.android.AndroidFragmentApplication;
+import com.github.claywilkinson.arcore.gdx.ARSupportFragment;
+import com.github.claywilkinson.arcore.gdx.ARFragmentApplication;
 
 /**
- * Main activity that extends the ARCore activity. There is no actual code needed in this class, the
- * Scene instance passed to initialize() handles all the lifecycle events.
+ * Main activity that extends the FragmentActivity and implements AndroidFragmentApplication
+ * callbacks.  This allows loading ARCore functionality as a Fragment, which eventually could
+ * be extended to load a non-AR fragment when running on a non-ARCore device.
  */
-public class MainActivity extends BaseARCoreActivity {
+public class MainActivity extends FragmentActivity implements AndroidFragmentApplication.Callbacks {
+  private static final String TAG = "HelloGDX sample";
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
-    // Setting this to true will make the view use the complete UI, hiding all the decor such as
-    // Snackbars, etc.  If you have no other UI, it looks nice to be immersive.
-    config.useImmersiveMode = false;
-    initialize(new HelloScene(), config);
+    // Loads the fragment.  There is no layout for this fragment, so it is simply added.
+    ARSupportFragment supportFragment = new ARSupportFragment();
+
+    getSupportFragmentManager().beginTransaction().add(
+            supportFragment, ARSupportFragment.TAG).commitAllowingStateLoss();
+
+    // Add the listener to check for ARCore being supported.  If it is, then prompt the user
+    // to use AR or 3D.
+    supportFragment.getArSupported().thenAccept(useAR -> {
+      AlertDialog.Builder builder =
+              new AlertDialog.Builder(this).setMessage("Display Mode");
+
+      if (useAR) {
+        builder.setPositiveButton("Use AR",
+                (dialogInterface, i) -> addDisplayFragment(true))
+                .setNegativeButton("3D only",
+                        (dialogInterface, i) -> addDisplayFragment(false));
+      } else {
+        builder.setNegativeButton("3D only",
+                (dialogInterface, i) -> addDisplayFragment(false));
+      }
+
+      builder.show();
+
+      // Exceptions only use 3D.
+    }).exceptionally(ex -> {
+      Log.e(TAG, "Exception checking for ARSupport", ex);
+      addDisplayFragment(false);
+      return null;
+    });
+  }
+
+  private void addDisplayFragment(boolean useAr) {
+    // Done with the AR support fragment, so remove it.
+    removeSupportFragment();
+
+    Fragment fragment;
+    if (useAr) {
+      fragment = new ARFragmentApplication();
+      ((ARFragmentApplication)fragment).setScene(new HelloScene());
+    } else {
+      fragment = new NonARFragmentApplication();
+      ((NonARFragmentApplication) fragment).setScene(new Hello3DScene());
+    }
+     // Finally place it in the layout.
+    getSupportFragmentManager().beginTransaction()
+            .add(android.R.id.content, fragment)
+            .commitAllowingStateLoss();
+  }
+
+  private void removeSupportFragment() {
+    Fragment fragment = getSupportFragmentManager().findFragmentByTag(ARSupportFragment.TAG);
+    if (fragment != null) {
+      getSupportFragmentManager().beginTransaction().remove(fragment).commitAllowingStateLoss();
+    }
+  }
+
+  @Override
+  public void exit() {
+    Log.d(TAG,"Exiting, thanks for visiting!");
+  }
+
+  @Override
+  public void onPointerCaptureChanged(boolean hasCapture) {
+
   }
 }

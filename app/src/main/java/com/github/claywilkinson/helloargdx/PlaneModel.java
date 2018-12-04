@@ -56,6 +56,11 @@ class PlaneModel {
     float extentX = plane.getExtentX();
     float extentZ = plane.getExtentZ();
 
+    // If the plane is empty, then don't generate a model.
+    if (boundary.limit() < 2) {
+      return null;
+    }
+
     // Model builder is used to create mesh parts.
     ModelBuilder builder = new ModelBuilder();
 
