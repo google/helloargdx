@@ -187,7 +187,8 @@ public class HelloScene extends ARCoreScene {
 
       // check for planes that are no longer valid
       if (plane.getSubsumedBy() != null
-          || plane.getTrackingState() == TrackingState.STOPPED) {
+          || plane.getTrackingState() == TrackingState.STOPPED
+          || plane.getPolygon().capacity() == 0) {
         continue;
       }
       // New plane

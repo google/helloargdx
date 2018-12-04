@@ -21,11 +21,11 @@ apply plugin: 'com.android.application'
  */
 ext {
     appName = "arcore-gdx"
-    gdxVersion = '1.9.6'
+    gdxVersion = '1.9.8'
     roboVMVersion = '2.3.1'
     box2DLightsVersion = '1.4'
-    ashleyVersion = '1.7.0'
-    aiVersion = '1.8.0'
+    ashleyVersion = '1.7.3'
+    aiVersion = '1.8.1'
 }
 
 configurations { natives }
@@ -58,12 +58,11 @@ dependencies {
 
     // ARCore dependency
     implementation "com.google.ar:core:1.5.0"
-
+    
     implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
 
     /* Don't include these since they are not supported by ARCore.
     natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi"
-
     natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
     natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
     */
@@ -73,11 +72,11 @@ dependencies {
     /* This sample does not use physics, but it is included for completeness. */
     implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
 
-    natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-armeabi-v7a"
     natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-arm64-v8a"
     natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-armeabi-v7a"
 
-    /* exclude unsupported platforms.
+    /* Don't include these since they are not supported by ARCore.
     natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-armeabi"
     natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86_64"
     */
@@ -87,19 +86,24 @@ dependencies {
 // the natives configuration, and extracts them to the proper libs/ folders
 // so they get packed with the APK.
 task copyAndroidNatives() {
-    file("src/main/jniLibs/armeabi/").mkdirs();
-    file("src/main/jniLibs/armeabi-v7a/").mkdirs();
-    file("src/main/jniLibs/arm64-v8a/").mkdirs();
-    file("src/main/jniLibs/x86_64/").mkdirs();
-    file("src/main/jniLibs/x86/").mkdirs();
+
+    file("src/main/jniLibs/armeabi-v7a/").mkdirs()
+    file("src/main/jniLibs/arm64-v8a/").mkdirs()
+    /* Don't include these since they are not supported by ARCore.
+    file("src/main/jniLibs/armeabi/").mkdirs()
+    file("src/main/jniLibs/x86/").mkdirs()
+    file("src/main/jniLibs/x86_64/").mkdirs()
+    */
 
     configurations.natives.files.each { jar ->
         def outputDir = null
         if (jar.name.endsWith("natives-arm64-v8a.jar")) outputDir = file("src/main/jniLibs/arm64-v8a")
         if (jar.name.endsWith("natives-armeabi-v7a.jar")) outputDir = file("src/main/jniLibs/armeabi-v7a")
+        /* Don't include these since they are not supported by ARCore.
         if (jar.name.endsWith("natives-armeabi.jar")) outputDir = file("src/main/jniLibs/armeabi")
-        if (jar.name.endsWith("natives-x86_64.jar")) outputDir = file("src/main/jniLibs/x86_64")
         if (jar.name.endsWith("natives-x86.jar")) outputDir = file("src/main/jniLibs/x86")
+        if (jar.name.endsWith("natives-x86_64.jar")) outputDir = file("src/main/jniLibs/x86_64")
+        */
         if (outputDir != null) {
             copy {
                 from zipTree(jar)

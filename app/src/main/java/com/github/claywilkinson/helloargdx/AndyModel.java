@@ -49,8 +49,10 @@ public class AndyModel {
   public AndyModel(AssetManager assetManager) {
     assetManager.setLoader(
         Model.class, ".obj", new ObjLoaderImproved(new InternalFileHandleResolver()));
-    assetManager.load(ANDY_MODEL, Model.class);
-    assetManager.load(ANDY_SHADOW_MODEL, Model.class);
+    ObjLoaderImproved.ObjLoaderParameters objLoaderParameters = new ObjLoaderImproved.ObjLoaderParameters();
+    objLoaderParameters.flipV = true;
+    assetManager.load(ANDY_MODEL, Model.class, objLoaderParameters);
+    assetManager.load(ANDY_SHADOW_MODEL, Model.class, objLoaderParameters);
   }
 
   /**
