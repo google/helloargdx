@@ -15,23 +15,24 @@ limitations under the License.
  */
 package com.github.claywilkinson.arcore.gdx.util;
 
-import android.app.Activity;
-import android.app.Fragment;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
+
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleObserver;
 import android.arch.lifecycle.OnLifecycleEvent;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 
 import com.github.claywilkinson.arcore.gdx.CameraPermissionHelper;
 import com.google.ar.core.ArCoreApk;
-import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Session;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
@@ -46,7 +47,7 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
  */
 public class ARSessionSupport implements LifecycleObserver {
   private static final String TAG = "ARSessionSupport";
-  private final Activity activity;
+  private final FragmentActivity activity;
   private Session session;
   private ARStatus status;
   private StatusChangeListener statusListener;
@@ -56,7 +57,7 @@ public class ARSessionSupport implements LifecycleObserver {
   private int height;
   private boolean mUserRequestedInstall;
 
-  public ARSessionSupport(Activity activity, Lifecycle lifecycle, StatusChangeListener listener) {
+  public ARSessionSupport(FragmentActivity activity, Lifecycle lifecycle, StatusChangeListener listener) {
     this.activity = activity;
     setStatus(ARStatus.Uninitialized);
     lifecycle.addObserver(this);
@@ -98,14 +99,13 @@ public class ARSessionSupport implements LifecycleObserver {
 
     try {
 
-    if (ArCoreApk.getInstance().requestInstall(activity, mUserRequestedInstall) ==
-            ArCoreApk.InstallStatus.INSTALL_REQUESTED) {
-      // Ensures next invocation of requestInstall() will either return
-      // INSTALLED or throw an exception.
-      mUserRequestedInstall = false;
-      return;
-    }
-
+      if (ArCoreApk.getInstance().requestInstall(activity, mUserRequestedInstall) ==
+              ArCoreApk.InstallStatus.INSTALL_REQUESTED) {
+        // Ensures next invocation of requestInstall() will either return
+        // INSTALLED or throw an exception.
+        mUserRequestedInstall = false;
+        return;
+      }
 
 
       session = new Session(activity);
@@ -136,14 +136,6 @@ public class ARSessionSupport implements LifecycleObserver {
       return;
     }
 
-    // Create default config and check if supported.
-    Config defaultConfig = new Config(session);
-    if (!session.isSupported(defaultConfig)) {
-      Log.w(TAG, "Configuration is not supported");
-    } else {
-      session.configure(defaultConfig);
-    }
-
     // Set the graphics information if it was already passed in.
     if (textureId >= 0) {
       setCameraTextureName(textureId);
@@ -152,7 +144,12 @@ public class ARSessionSupport implements LifecycleObserver {
       setDisplayGeometry(rotation, width, height);
     }
 
-    session.resume();
+    try {
+      session.resume();
+    } catch (CameraNotAvailableException e) {
+      Log.e(TAG, "Exception resuming session", e);
+      return;
+    }
     setStatus(ARStatus.Ready);
   }
 
@@ -166,7 +163,11 @@ public class ARSessionSupport implements LifecycleObserver {
       if (session == null) {
         initializeARCore();
       } else {
-        session.resume();
+        try {
+          session.resume();
+        } catch (CameraNotAvailableException e) {
+          Log.e(TAG, "Exception resuming session", e);
+        }
       }
     } else {
       requestCameraPermission();
@@ -192,7 +193,7 @@ public class ARSessionSupport implements LifecycleObserver {
   private void requestCameraPermission() {
     PermissionFragment fragment = new PermissionFragment();
     fragment.setArSessionSupport(this);
-    FragmentManager mgr = activity.getFragmentManager();
+    FragmentManager mgr = activity.getSupportFragmentManager();
     FragmentTransaction trans = mgr.beginTransaction();
     trans.add(fragment, PermissionFragment.TAG);
     trans.commit();
@@ -228,9 +229,24 @@ public class ARSessionSupport implements LifecycleObserver {
   @Nullable
   public Frame update() {
     if (session != null) {
-      return session.update();
+      try {
+        return session.update();
+      } catch (CameraNotAvailableException e) {
+        Log.e(TAG, "Exception resuming session", e);
+      }
     }
     return null;
+  }
+
+  public enum ARStatus {
+    ARCoreNotInstalled,
+    ARCoreTooOld,
+    SDKTooOld,
+    UnknownException,
+    NeedCameraPermission,
+    Ready,
+    DeviceNotSupported,
+    Uninitialized
   }
 
   /**
@@ -267,21 +283,10 @@ public class ARSessionSupport implements LifecycleObserver {
       } else {
         arSessionSupport.initializeARCore();
       }
-      FragmentManager mgr = getActivity().getFragmentManager();
+      FragmentManager mgr = requireFragmentManager();
       FragmentTransaction trans = mgr.beginTransaction();
       trans.remove(this);
       trans.commit();
     }
-  }
-
-  public enum ARStatus {
-    ARCoreNotInstalled,
-    ARCoreTooOld,
-    SDKTooOld,
-    UnknownException,
-    NeedCameraPermission,
-    Ready,
-    DeviceNotSupported,
-    Uninitialized
   }
 }

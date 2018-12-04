@@ -19,6 +19,7 @@ import android.support.design.widget.Snackbar;
 import android.util.Log;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.Renderable;
@@ -190,7 +191,11 @@ public class HelloScene extends ARCoreScene {
         continue;
       }
       // New plane
-      ModelInstance instance = new ModelInstance(PlaneModel.createPlane(plane, index++));
+      Model planeModel = PlaneModel.createPlane(plane, index++);
+      if (planeModel == null) {
+        continue;
+      }
+      ModelInstance instance = new ModelInstance(planeModel);
       instance.transform.setToTranslation(
           plane.getCenterPose().tx(), plane.getCenterPose().ty(), plane.getCenterPose().tz());
       planeInstances.add(instance);
@@ -228,27 +233,21 @@ public class HelloScene extends ARCoreScene {
       return;
     }
     Gdx.app.postRunnable(
-        new Runnable() {
-          @Override
-          public void run() {
+            () -> {
 
-            mLoadingMessageSnackbar =
-                Snackbar.make(getView(), "Searching for surfaces...", Snackbar.LENGTH_INDEFINITE);
-            mLoadingMessageSnackbar.getView().setBackgroundColor(0xbf323232);
-            mLoadingMessageSnackbar.show();
-          }
-        });
+              mLoadingMessageSnackbar =
+                  Snackbar.make(getView(), "Searching for surfaces...", Snackbar.LENGTH_INDEFINITE);
+              mLoadingMessageSnackbar.getView().setBackgroundColor(0xbf323232);
+              mLoadingMessageSnackbar.show();
+            });
   }
 
   /** Hide it. */
   private void hideLoadingMessage() {
     Gdx.app.postRunnable(
-        new Runnable() {
-          @Override
-          public void run() {
-            mLoadingMessageSnackbar.dismiss();
-            mLoadingMessageSnackbar = null;
-          }
-        });
+            () -> {
+              mLoadingMessageSnackbar.dismiss();
+              mLoadingMessageSnackbar = null;
+            });
   }
 }

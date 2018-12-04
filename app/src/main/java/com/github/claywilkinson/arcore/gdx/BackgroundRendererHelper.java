@@ -38,7 +38,7 @@ public class BackgroundRendererHelper {
   private FloatBuffer quadTexCoordTransformed;
 
   private int mTextureId = -1;
-  private int mTextureTarget = GLES11Ext.GL_TEXTURE_EXTERNAL_OES; // TODO(avirodov): configurable.
+  private int mTextureTarget = GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
 
   public BackgroundRendererHelper() {}
 
@@ -82,12 +82,12 @@ public class BackgroundRendererHelper {
     quadTexCoordTransformed = bbTexCoordsTransformed.asFloatBuffer();
   }
 
-  public static final float[] QUAD_COORDS =
+  private static final float[] QUAD_COORDS =
       new float[] {
         -1.0f, -1.0f, 0.0f, -1.0f, +1.0f, 0.0f, +1.0f, -1.0f, 0.0f, +1.0f, +1.0f, 0.0f,
       };
 
-  public static final float[] QUAD_TEXCOORDS =
+  private static final float[] QUAD_TEXCOORDS =
       new float[] {
         0.0f, 1.0f,
         0.0f, 0.0f,
@@ -95,7 +95,7 @@ public class BackgroundRendererHelper {
         1.0f, 0.0f,
       };
 
-  public float[] getVertices(Frame frame) {
+  float[] getVertices(Frame frame) {
     if (frame != null && frame.hasDisplayGeometryChanged()) {
       frame.transformDisplayUvCoords(quadTexCoord, quadTexCoordTransformed);
     }
